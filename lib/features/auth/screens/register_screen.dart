@@ -6,25 +6,25 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/providers/auth_provider.dart';
 
-class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+class RegisterScreen extends ConsumerStatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   
-  void _handleLogin() async {
+  void _handleRegister() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     if (email.isEmpty || password.isEmpty) return;
     
     try {
-      await ref.read(authProvider.notifier).signIn(email, password);
+      await ref.read(authProvider.notifier).signUp(email, password);
       if (mounted) context.go('/home');
     } catch (e) {
       if (mounted) {
@@ -47,7 +47,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Sign In', style: AppTypography.h2),
+        title: const Text('Create Account', style: AppTypography.h2),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.lg),
@@ -56,7 +56,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           children: [
             const SizedBox(height: AppSpacing.xxl),
             Text(
-              'STREAMX',
+              'Join StreamX',
               style: AppTypography.display.copyWith(color: AppColors.brand, fontSize: 32),
             ),
             const SizedBox(height: AppSpacing.xxl),
@@ -124,70 +124,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
             ),
             
-            // Forgot Password
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () {},
-                child: Text(
-                  'Forgot Password?',
-                  style: AppTypography.label.copyWith(color: AppColors.brand),
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: AppSpacing.xl),
             
-            // Login Button
+            // Register Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: isLoading ? null : _handleLogin,
+                onPressed: isLoading ? null : _handleRegister,
                 child: isLoading 
                   ? const SizedBox(
                       width: 20, 
                       height: 20, 
                       child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
                     )
-                  : const Text('Sign In'),
+                  : const Text('Sign Up'),
               ),
             ),
             
             const SizedBox(height: AppSpacing.xl),
             
-            // Divider
-            Row(
-              children: [
-                const Expanded(child: Divider(color: AppColors.surfaceBorder)),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                  child: Text('— or continue with —', style: AppTypography.bodySmall),
-                ),
-                const Expanded(child: Divider(color: AppColors.surfaceBorder)),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            
-            // Google Sign In
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.g_mobiledata, size: 28),
-                label: const Text('Google'),
-              ),
-            ),
-            
-            const SizedBox(height: AppSpacing.xxl),
-            
-            // Create Account Link
+            // Go to Login
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('New here? ', style: AppTypography.body),
+                Text('Already have an account? ', style: AppTypography.body),
                 GestureDetector(
-                  onTap: () => context.push('/register'),
+                  onTap: () => context.pop(), // Pop to go back to login screen
                   child: Text(
-                    'Create account',
+                    'Sign In',
                     style: AppTypography.label.copyWith(color: AppColors.brand),
                   ),
                 ),

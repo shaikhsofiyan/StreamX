@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 
@@ -18,11 +19,15 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _navigateToNext() async {
-    // Mocking auth check delay
-    await Future.delayed(const Duration(seconds: 2));
+    // Brief delay so splash screen is visible
+    await Future.delayed(const Duration(milliseconds: 500));
     if (mounted) {
-      // Assuming first launch for Phase 1
-      context.go('/onboarding');
+      final session = Supabase.instance.client.auth.currentSession;
+      if (session != null) {
+        context.go('/home');
+      } else {
+        context.go('/onboarding');
+      }
     }
   }
 

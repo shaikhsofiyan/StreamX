@@ -2,8 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    // Ignore error if .env doesn't exist, we might have passed them via CI
+  }
+
+  await Supabase.initialize(
+    url: dotenv.env['SUPABASE_URL'] ?? 'https://placeholder.supabase.co',
+    anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? 'placeholder_key',
+  );
+
   runApp(
     const ProviderScope(
       child: StreamXApp(),
