@@ -1,245 +1,267 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:shimmer/shimmer.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/utils/mock_data.dart';
-import '../../../shared/models/content.dart';
+import '../../../../core/providers/content_provider.dart';
 import '../../../shared/widgets/content_card.dart';
 
-class DetailScreen extends StatefulWidget {
+class DetailScreen extends ConsumerStatefulWidget {
   final String contentId;
 
   const DetailScreen({super.key, required this.contentId});
 
   @override
-  State<DetailScreen> createState() => _DetailScreenState();
+  ConsumerState<DetailScreen> createState() => _DetailScreenState();
 }
 
-class _DetailScreenState extends State<DetailScreen> {
-  late Content content;
+class _DetailScreenState extends ConsumerState<DetailScreen> {
   bool _isDescriptionExpanded = false;
 
   @override
-  void initState() {
-    super.initState();
-    // Simulate fetching content by ID
-    content = MockData.featuredContent.firstWhere(
-      (c) => c.id == widget.contentId,
-      orElse: () => MockData.trendingNow.firstWhere(
-        (c) => c.id == widget.contentId,
-        orElse: () => MockData.featuredContent.first,
-      ),
-    );
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final detailAsync = ref.watch(contentDetailProvider(widget.contentId));
+    final recommendationsAsync = ref.watch(allContentProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: MediaQuery.of(context).size.height * 0.4,
-            backgroundColor: AppColors.background,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () => context.pop(),
-            ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.cast, color: Colors.white),
-                onPressed: () {},
+      body: detailAsync.when(
+        data: (content) => CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              pinned: true,
+              expandedHeight: MediaQuery.sizeOf(context).height * 0.4,
+              backgroundColor: AppColors.background,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () => context.pop(),
               ),
-              IconButton(
-                icon: const Icon(Icons.search, color: Colors.white),
-                onPressed: () {},
-              ),
-            ],
-            flexibleSpace: FlexibleSpaceBar(
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  CachedNetworkImage(
-                    imageUrl: content.backdropUrl ?? content.thumbnailUrl,
-                    fit: BoxFit.cover,
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
-                        colors: [
-                          AppColors.background,
-                          AppColors.background.withValues(alpha: 0.3),
-                          Colors.transparent,
-                        ],
-                        stops: const [0.0, 0.5, 1.0],
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.cast, color: Colors.white),
+                  onPressed: () {},
+                ),
+                IconButton(
+                  icon: const Icon(Icons.search, color: Colors.white),
+                  onPressed: () {},
+                ),
+              ],
+              flexibleSpace: FlexibleSpaceBar(
+                background: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    CachedNetworkImage(
+                      imageUrl: content.backdropUrl ?? content.thumbnailUrl,
+                      fit: BoxFit.cover,
+                    ),
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [
+                            AppColors.background,
+                            AppColors.background.withValues(alpha: 0.3),
+                            Colors.transparent,
+                          ],
+                          stops: const [0.0, 0.5, 1.0],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title
-                  Text(
-                    content.title,
-                    style: AppTypography.display.copyWith(fontSize: 32),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  
-                  // Metadata Row
-                  Row(
-                    children: [
-                      if (content.imdbScore != null) ...[
-                        Text(
-                          '${(content.imdbScore! * 10).toInt()}% Match',
-                          style: AppTypography.label.copyWith(color: AppColors.success),
-                        ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Title
+                    Text(
+                      content.title,
+                      style: AppTypography.display.copyWith(fontSize: 32),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    
+                    // Metadata Row
+                    Row(
+                      children: [
+                        if (content.imdbScore != null) ...[
+                          Text(
+                            '${(content.imdbScore! * 10).toInt()}% Match',
+                            style: AppTypography.label.copyWith(color: AppColors.success),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                        ],
+                        if (content.releaseYear != null) ...[
+                          Text(
+                            content.releaseYear.toString(),
+                            style: AppTypography.bodySmall.copyWith(color: AppColors.textMuted),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                        ],
+                        if (content.ageRating != null) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceElevated,
+                              borderRadius: BorderRadius.circular(AppRadius.sm),
+                            ),
+                            child: Text(
+                              content.ageRating!,
+                              style: const TextStyle(color: AppColors.textMuted, fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                        ],
+                        if (content.durationMins != null)
+                          Text(
+                            '${content.durationMins! ~/ 60}h ${content.durationMins! % 60}m',
+                            style: AppTypography.bodySmall.copyWith(color: AppColors.textMuted),
+                          ),
                         const SizedBox(width: AppSpacing.md),
-                      ],
-                      if (content.releaseYear != null) ...[
-                        Text(
-                          content.releaseYear.toString(),
-                          style: AppTypography.bodySmall.copyWith(color: AppColors.textMuted),
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                      ],
-                      if (content.ageRating != null) ...[
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                           decoration: BoxDecoration(
-                            color: AppColors.surfaceElevated,
+                            border: Border.all(color: AppColors.textMuted),
                             borderRadius: BorderRadius.circular(AppRadius.sm),
                           ),
-                          child: Text(
-                            content.ageRating!,
-                            style: const TextStyle(color: AppColors.textMuted, fontSize: 10, fontWeight: FontWeight.bold),
+                          child: const Text(
+                            'HD',
+                            style: TextStyle(color: AppColors.textMuted, fontSize: 10, fontWeight: FontWeight.bold),
                           ),
                         ),
-                        const SizedBox(width: AppSpacing.md),
                       ],
-                      if (content.durationMins != null)
-                        Text(
-                          '${content.durationMins! ~/ 60}h ${content.durationMins! % 60}m',
-                          style: AppTypography.bodySmall.copyWith(color: AppColors.textMuted),
-                        ),
-                      const SizedBox(width: AppSpacing.md),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: AppColors.textMuted),
-                          borderRadius: BorderRadius.circular(AppRadius.sm),
-                        ),
-                        child: const Text(
-                          'HD',
-                          style: TextStyle(color: AppColors.textMuted, fontSize: 10, fontWeight: FontWeight.bold),
-                        ),
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+                    
+                    // Play Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () => context.push('/player/${content.id}'),
+                        icon: const Icon(Icons.play_arrow),
+                        label: const Text('Play'),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                  
-                  // Play Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => context.push('/player/${content.id}'),
-                      icon: const Icon(Icons.play_arrow),
-                      label: const Text('Play'),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  
-                  // Download Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.download, color: AppColors.textPrimary),
-                      label: const Text('Download'),
+                    const SizedBox(height: AppSpacing.sm),
+                    
+                    // Download Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () {},
+                        icon: const Icon(Icons.download, color: AppColors.textPrimary),
+                        label: const Text('Download'),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  
-                  // Description
-                  if (content.description != null)
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _isDescriptionExpanded = !_isDescriptionExpanded;
-                        });
-                      },
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            content.description!,
-                            style: AppTypography.body.copyWith(height: 1.5),
-                            maxLines: _isDescriptionExpanded ? null : 3,
-                            overflow: _isDescriptionExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
-                          ),
-                          if (!_isDescriptionExpanded)
+                    const SizedBox(height: AppSpacing.lg),
+                    
+                    // Description
+                    if (content.description != null)
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _isDescriptionExpanded = !_isDescriptionExpanded;
+                          });
+                        },
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              'More',
-                              style: AppTypography.label.copyWith(color: AppColors.textMuted),
+                              content.description!,
+                              style: AppTypography.body.copyWith(height: 1.5),
+                              maxLines: _isDescriptionExpanded ? null : 3,
+                              overflow: _isDescriptionExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
                             ),
-                        ],
+                            if (!_isDescriptionExpanded)
+                              Text(
+                                'More',
+                                style: AppTypography.label.copyWith(color: AppColors.textMuted),
+                              ),
+                          ],
+                        ),
                       ),
+                    
+                    const SizedBox(height: AppSpacing.xl),
+                    
+                    // Action Row (My List, Rate, Share)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildActionItem(Icons.add, 'My List'),
+                        _buildActionItem(Icons.thumb_up_alt_outlined, 'Rate'),
+                        _buildActionItem(Icons.share, 'Share'),
+                      ],
                     ),
-                  
-                  const SizedBox(height: AppSpacing.xl),
-                  
-                  // Action Row (My List, Rate, Share)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildActionItem(Icons.add, 'My List'),
-                      _buildActionItem(Icons.thumb_up_alt_outlined, 'Rate'),
-                      _buildActionItem(Icons.share, 'Share'),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                  
-                  // More Like This
-                  Text(
-                    'More Like This',
-                    style: AppTypography.h2,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      childAspectRatio: 2 / 3,
-                      crossAxisSpacing: AppSpacing.sm,
-                      mainAxisSpacing: AppSpacing.sm,
+                    const SizedBox(height: AppSpacing.xl),
+                    
+                    // More Like This
+                    Text(
+                      'More Like This',
+                      style: AppTypography.h2,
                     ),
-                    itemCount: MockData.trendingNow.length,
-                    itemBuilder: (context, index) {
-                      return ContentCard(
-                        content: MockData.trendingNow[index],
-                        cardType: CardType.portrait,
-                      );
-                    },
-                  ),
-                  const SizedBox(height: AppSpacing.xxl),
-                ],
+                    const SizedBox(height: AppSpacing.md),
+                    
+                    recommendationsAsync.when(
+                      data: (list) {
+                        final filteredList = list.where((item) => item.id != content.id).toList();
+                        if (filteredList.isEmpty) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                            child: Text('No recommendations found.', style: AppTypography.bodySmall.copyWith(color: AppColors.textMuted)),
+                          );
+                        }
+                        return GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            childAspectRatio: 2 / 3,
+                            crossAxisSpacing: AppSpacing.sm,
+                            mainAxisSpacing: AppSpacing.sm,
+                          ),
+                          itemCount: filteredList.length,
+                          itemBuilder: (context, index) {
+                            return ContentCard(
+                              content: filteredList[index],
+                              cardType: CardType.portrait,
+                            );
+                          },
+                        );
+                      },
+                      loading: () => _buildGridShimmer(),
+                      error: (err, stack) => Text('Failed to load recommendations', style: AppTypography.bodySmall.copyWith(color: AppColors.error)),
+                    ),
+                    const SizedBox(height: AppSpacing.xxl),
+                  ],
+                ),
               ),
             ),
+          ],
+        ),
+        loading: () => _buildScreenShimmer(),
+        error: (err, stack) => Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(backgroundColor: Colors.transparent),
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                const SizedBox(height: AppSpacing.md),
+                const Text('Failed to load content details', style: AppTypography.h2),
+                const SizedBox(height: AppSpacing.sm),
+                Text(err.toString(), style: AppTypography.bodySmall, textAlign: TextAlign.center),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -254,6 +276,59 @@ class _DetailScreenState extends State<DetailScreen> {
           style: AppTypography.labelSmall.copyWith(color: AppColors.textMuted),
         ),
       ],
+    );
+  }
+
+  Widget _buildScreenShimmer() {
+    final double screenHeight = MediaQuery.sizeOf(context).height;
+    return Shimmer.fromColors(
+      baseColor: AppColors.shimmerBase,
+      highlightColor: AppColors.shimmerHighlight,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            height: screenHeight * 0.4,
+            color: Colors.white,
+          ),
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.pagePadding),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(width: 200, height: 28, color: Colors.white),
+                const SizedBox(height: AppSpacing.md),
+                Container(width: 150, height: 16, color: Colors.white),
+                const SizedBox(height: AppSpacing.xl),
+                Container(width: double.infinity, height: 44, color: Colors.white),
+                const SizedBox(height: AppSpacing.sm),
+                Container(width: double.infinity, height: 44, color: Colors.white),
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGridShimmer() {
+    return Shimmer.fromColors(
+      baseColor: AppColors.shimmerBase,
+      highlightColor: AppColors.shimmerHighlight,
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          childAspectRatio: 2 / 3,
+          crossAxisSpacing: AppSpacing.sm,
+          mainAxisSpacing: AppSpacing.sm,
+        ),
+        itemCount: 3,
+        itemBuilder: (context, index) => Container(
+          color: Colors.white,
+        ),
+      ),
     );
   }
 }
